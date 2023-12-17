@@ -1,9 +1,9 @@
 import { Router } from "express";
 import {
   registerUser,
-  loggedinUser,
+  loginuser,
   logoutuser,
-} from "../controllers/user.controllers.js.js";
+} from "../controllers/user.controllers.js";
 import { upload } from "../middleware/multer.middleware.js";
 import { verifyJWT } from "../middleware/auth.middlware.js";
 const userRouter = Router();
@@ -19,7 +19,7 @@ userRouter
     res.send(`working bro`);
   });
 
-userRouter.route("/login").post(loggedinUser);
+userRouter.route("/login").post(loginuser);
 
 userRouter.route("/logout").post(verifyJWT, logoutuser);
 

@@ -1,4 +1,4 @@
-import { asynchandler } from "../utils/asynhandler.js";
+import { asynchandler } from "../utils/asynchandler.js";
 import { ApiError } from "../utils/apierror.js";
 import { User } from "../models/user.models.js";
 import { uploadoncloudinary } from "../utils/cloudinary.js";
@@ -7,8 +7,8 @@ import { ApiResponse } from "../utils/apiresponse.js";
 const generateAccessAndRefreshToken = async (userId) => {
   try {
     const user = await User.findById(userId);
-    const AccessToken = user.generateRefreshToken();
-    const RefreshToken = user.generateAccessToken();
+    const AccessToken = user.generateAccessToken();
+    const RefreshToken = user.generateRefreshToken();
     user.RefreshToken = RefreshToken;
     await user.save({ validateBeforeSave: false });
     return { AccessToken, RefreshToken };
@@ -31,18 +31,18 @@ const registerUser = asynchandler(async (req, res) => {
   //check for user creation
   //return response
 
-  const { fullName, email, username, password } = req.body;
-  console.log({ fullName, email, username, password });
+  const { fullName, eMail, userName, password } = req.body;
+  console.log({ fullName, eMail, userName, password });
 
   // if(fullname == ""){throw new ApiError(400,"fullname is required" )}
   if (
-    [fullName, email, username, password].some((feild) => feild?.trim() === "")
+    [fullName, eMail, userName, password].some((feild) => feild?.trim() === "")
   ) {
     throw new ApiError(400, "all fields are required");
   }
 
   //2 step
-  const existeduser = await User.findOne({ $or: [{ username }, { email }] });
+  const existeduser = await User.findOne({ $or: [{ userName }, { eMail }] });
   if (existeduser) {
     throw new ApiError(409, "user with email and username exists");
   }
@@ -65,9 +65,9 @@ const registerUser = asynchandler(async (req, res) => {
     fullName,
     avatar: avatar.url,
     coverImage: coverImage.url || "",
-    email,
+    eMail,
     password,
-    userName: username,
+    userName,
   });
   const createduser = await User.findById(user._id).select(
     "-password -refreshToken"
@@ -91,7 +91,7 @@ const loginuser = asynchandler(async (req, res) => {
 
   const { userName, eMail, password } = req.body;
 
-  if (!userName || !eMail) {
+  if (!(userName || eMail)) {
     throw new ApiError(400, "usernam or password is required");
   }
 
@@ -117,7 +117,7 @@ const loginuser = asynchandler(async (req, res) => {
 
   return res
     .status(200)
-    .cookie("AccesToken", AccessToken, option)
+    .cookie("AccessToken", AccessToken, option)
     .cookie("RefreshToken", RefreshToken, option)
     .json(
       new ApiResponse(
@@ -131,15 +131,27 @@ const loginuser = asynchandler(async (req, res) => {
 const logoutuser = asynchandler(async (req, res) => {
   await User.findByIdAndUpdate(
     req.user._id,
-    { $set: { RefreshToken: undefined } },
-    { new: true }
-  );
-  const option = { httpOnly: true, secure: true };
+    {
+        $set: {
+            refreshToken: undefined
+        }
+    },
+    {
+        new: true
+    }
+)
 
-  return res
-    .status(200)
-    .clearCookie("AccessToken", option)
-    .clearCookie("RefreshToken", option);
-});
+const options = {
+    httpOnly: true,
+    secure: true
+}
+
+return res
+.status(200)
+.clearCookie("AccessToken", options)
+.clearCookie("RefreshToken", options)
+.json(new ApiResponse(200, {}, "User logged Out"))
+})
+
 
 export { registerUser, logoutuser, loginuser };
